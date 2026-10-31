@@ -123,7 +123,7 @@ button{cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:man
 .hl{position:absolute;border-radius:50%;transform:translate(-50%,-50%)}
 .hl.t{background:rgba(5,120,70,.85)}
 .hl.c{border:4px solid rgba(239,68,68,.95);background:rgba(239,68,68,.2)}
-.hl.f{border:2px dashed #047857;background:rgba(16,185,129,.22)}
+.hl.f{border:3px solid #f59e0b;background:rgba(251,191,36,.55);box-shadow:0 0 10px rgba(245,158,11,.9)}
 
 /* ---------- caro / canvas ---------- */
 .cv{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);border-radius:8px;box-shadow:0 12px 30px rgba(0,0,0,.5);touch-action:none}
@@ -142,13 +142,48 @@ button{cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:man
 #toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom));transform:translate(-50%,10px);background:rgba(8,14,30,.95);border:1px solid #f59e0b88;color:#fde68a;padding:9px 14px;border-radius:12px;font-size:13px;font-weight:700;opacity:0;pointer-events:none;transition:.22s;z-index:60;max-width:88vw;text-align:center}
 #toast.on{opacity:1;transform:translate(-50%,0)}
 
+/* ---------- khung thấp / xoay ngang: bàn bên trái, điều khiển cột phải ---------- */
+html.wide #game.on{display:grid;grid-template-columns:minmax(0,1fr) 112px;grid-template-rows:auto auto auto 1fr}
+html.wide #game .bar{grid-column:1/-1;grid-row:1;min-height:34px!important;padding:2px 8px!important}
+html.wide #g-area{grid-column:1;grid-row:2/5}
+html.wide #g-top{grid-column:2;grid-row:2}
+html.wide #g-bot{grid-column:2;grid-row:3}
+html.wide #g-actions{grid-column:2;grid-row:4;display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:6px;align-content:start}
+html.wide .strip{flex-wrap:wrap;gap:3px 6px;padding:6px 8px;min-height:0;border-left:1px solid #1b2745}
+html.wide .sname{flex:1 1 60px;min-width:0;font-size:11.5px;line-height:1.2;white-space:normal}
+html.wide .sextra{flex:1 1 100%;font-size:13px}
+html.wide .sclock{flex:1 1 100%;min-width:0;font-size:14px}
+html.wide .abtn{min-height:42px;font-size:9.5px;padding:2px}
+html.wide .abtn .ai{font-size:16px}
+html.wide .ib{width:34px;height:34px}
+/* menu & phòng chờ gọn hơn khi khung thấp */
+html.short .hhead{padding:8px 12px 2px}
+html.short .logo{width:36px;height:36px;font-size:20px;border-radius:12px}
+html.short .hhead h1{font-size:17px}
+html.short .hgrid{grid-template-columns:repeat(3,1fr);gap:8px;padding:6px 10px 6px}
+html.short .card{min-height:88px;padding:8px;border-radius:14px}
+html.short .card .ic{font-size:28px}
+html.short .card b{font-size:13px}
+html.short .card small,html.short .card .tags{display:none}
+html.short .hfoot{padding:2px 8px 4px}
+html.short .lbody{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-content:start;padding:2px 10px 8px}
+html.short .lbody .tabs{grid-column:1/-1}
+html.short .tab{min-height:40px;flex-direction:row;gap:6px}
+html.short .panel{padding:8px;gap:8px}
+html.short .chip{min-height:34px}
+html.short .btn{min-height:40px}
+html.short .bar{min-height:40px;padding:4px 8px}
+#fs{display:none}
+html.emb #fs{display:grid}
+html.short .lbody>.btn.pri{align-self:start;min-height:48px}
+
 </style>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
 <body>
 <div id="app">
   <section id="home" class="screen">
-    <div class="hhead"><div class="logo">♟</div><div><h1>Cờ &amp; Game 2 Người</h1><p>Chơi với máy hoặc online qua mật khẩu phòng</p></div><button class="ib sndbtn" style="margin-left:auto">🔊</button></div>
+    <div class="hhead"><div class="logo">♟</div><div><h1>Cờ &amp; Game 2 Người</h1><p>Chơi với máy hoặc online qua mật khẩu phòng</p></div><button class="ib" id="fs" style="margin-left:auto" title="Mở toàn màn hình trong tab mới" aria-label="Mở toàn màn hình">⤢</button><button class="ib sndbtn" id="snd0">🔊</button></div>
     <div class="hgrid" id="hgrid"></div>
     <div class="hfoot" id="hfoot"></div>
   </section>
@@ -245,9 +280,12 @@ function confirmBox(title, text, yes, no, cb) {
 function isMobileDev() { const sw = (window.screen && screen.width) || 9999; return Math.min(innerWidth, sw) < 640; }
 const resizeHooks = [];
 function setAppH() {
-  let H = innerHeight; const W = Math.min(innerWidth, 560);
-  if (isMobileDev() && H < W * 1.6) H = Math.round(W * 2);   // khung nhúng thấp: kéo dài ra
-  document.documentElement.style.setProperty('--appH', H + 'px');
+  const W = Math.min(innerWidth, 560), H = innerHeight, de = document.documentElement;
+  de.style.setProperty('--appH', H + 'px');
+  // Khung thấp (iframe Google Sites, điện thoại xoay ngang): đặt bàn bên trái, điều khiển cột bên phải để KHÔNG phải cuộn
+  const normal = Math.min(W - 8, H - 200), wide = Math.min(W - 120, H - 40);
+  de.classList.toggle('wide', wide > normal * 1.05);
+  de.classList.toggle('short', H < 480);
 }
 let rzRaf = 0;
 function onResize() {
@@ -1509,7 +1547,24 @@ class XiangqiGame extends TurnBase {
       const o = this.pos(sq), cap = this.board[sq] !== 0, s = cap ? o.s : Math.max(9, o.s * 0.28);
       this.hl.append(h('div', { class: 'hl ' + (cap ? 'c' : 't'), style: `width:${s}px;height:${s}px;left:${o.x}px;top:${o.y}px` }));
     });
-    if (this.last) { const o = this.pos(this.last.from); this.hl.append(h('div', { class: 'hl f', style: `width:${o.s}px;height:${o.s}px;left:${o.x}px;top:${o.y}px` })); }
+    if (this.last) {   // nước vừa đi: ô xuất phát (vòng vàng đậm) + mũi tên từ ô đi tới ô đến
+      const A = this.pos(this.last.from), B = this.pos(this.last.to), dx = B.x - A.x, dy = B.y - A.y, len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len;
+      this.hl.append(h('div', { class: 'hl f', style: `width:${A.s}px;height:${A.s}px;left:${A.x}px;top:${A.y}px` }));
+      const NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg');
+      svg.setAttribute('width', this.bd.clientWidth); svg.setAttribute('height', this.bd.clientHeight);
+      svg.style.cssText = 'position:absolute;left:0;top:0;pointer-events:none;overflow:visible';
+      const r0 = A.s * 0.5, r1 = B.s * 0.5 + 2, sw = Math.max(4, A.s * 0.11), hd = sw * 2.4;
+      if (len > r0 + r1 + hd * 0.5) {
+        const x1 = A.x + ux * r0, y1 = A.y + uy * r0, x2 = B.x - ux * r1, y2 = B.y - uy * r1, bx = x2 - ux * hd, by = y2 - uy * hd;
+        const ln = document.createElementNS(NS, 'line');
+        [['x1', x1], ['y1', y1], ['x2', bx], ['y2', by], ['stroke', 'rgba(245,158,11,.92)'], ['stroke-width', sw], ['stroke-linecap', 'round']].forEach(([k, v]) => ln.setAttribute(k, v));
+        const hp = document.createElementNS(NS, 'polygon');
+        hp.setAttribute('points', `${x2},${y2} ${bx - uy * hd * 0.62},${by + ux * hd * 0.62} ${bx + uy * hd * 0.62},${by - ux * hd * 0.62}`);
+        hp.setAttribute('fill', 'rgba(245,158,11,.95)');
+        svg.append(ln, hp);
+      }
+      this.hl.append(svg);
+    }
   }
   onTap(e) {
     if (!this.canAct()) return; this.E();
@@ -1595,23 +1650,80 @@ class CaroGame extends TurnBase {
   sideInfo(s) { return s === 1 ? { name: 'X', cls: 'sx' } : { name: 'O', cls: 'so' }; }
   initRules(cfg) {
     this.b = new Int8Array(CARO_N * CARO_N); this.count = 0; this.winLine = null; this.pend = -1; this.blocked = !!cfg.blocked;
+    this.zoom = 1.8; this.cx = CARO_N / 2; this.cy = CARO_N / 2; this.focus = null; this.ptrs = new Map(); this.gest = null;
     const area = this.api.el.area; area.innerHTML = '';
-    this.cv = h('canvas', { class: 'cv' }); area.append(this.cv);
-    this.cv.addEventListener('click', e => this.onTap(e));
+    this.cv = h('canvas', { class: 'fullcv' }); area.append(this.cv);
+    const zb = (t, fn) => h('button', { class: 'ib', style: 'width:40px;height:40px;font-size:20px;font-weight:900;background:rgba(17,26,47,.88)', onclick: fn }, t);
+    area.append(h('div', { style: 'position:absolute;right:8px;bottom:8px;display:flex;flex-direction:column;gap:6px;z-index:3' },
+      zb('+', () => this.zoomBy(1.3)), zb('−', () => this.zoomBy(1 / 1.3)), zb('⤢', () => { this.zoom = 1; this.cx = this.cy = CARO_N / 2; this.clampCam(); this.render(); })));
+    const cv = this.cv;
+    cv.addEventListener('pointerdown', e => {
+      e.preventDefault(); try { cv.setPointerCapture(e.pointerId); } catch (x) {}
+      this.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY });
+      this.gest = { moved: this.ptrs.size > 1, multi: this.ptrs.size > 1 };
+      if (this.ptrs.size === 2) this.startPinch();
+    });
+    cv.addEventListener('pointermove', e => {
+      const q = this.ptrs.get(e.pointerId); if (!q) return; e.preventDefault();
+      const px = q.x, py = q.y; q.x = e.clientX; q.y = e.clientY;
+      if (this.ptrs.size >= 2) { this.gest.moved = true; this.pinchMove(); return; }
+      if (!this.gest.moved && Math.hypot(q.x - q.sx, q.y - q.sy) < 8) return;
+      this.gest.moved = true;
+      const pc = this.pc(); this.cx -= (q.x - px) / pc; this.cy -= (q.y - py) / pc; this.clampCam(); this.render();
+    });
+    const up = e => {
+      const q = this.ptrs.get(e.pointerId); if (!q) return;
+      this.ptrs.delete(e.pointerId);
+      const g = this.gest;
+      if (g && !g.moved && !g.multi && e.type === 'pointerup') this.onTap(e);
+      if (this.ptrs.size === 1) { const r = Array.from(this.ptrs.values())[0]; r.sx = r.x; r.sy = r.y; if (g) g.moved = true; }
+      if (this.ptrs.size === 0) this.gest = null;
+    };
+    cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+    cv.addEventListener('wheel', e => { e.preventDefault(); this.zoomBy(e.deltaY < 0 ? 1.15 : 1 / 1.15, e.clientX, e.clientY); }, { passive: false });
     this.fit();
   }
   resize() { this.fit(); this.render(); }
   fit() {
-    const a = this.api.el.area, s = Math.max(150, Math.floor(Math.min(a.clientWidth - 6, a.clientHeight - 6)));
-    this.size = s; const dpr = window.devicePixelRatio || 1;
-    this.cv.width = s * dpr; this.cv.height = s * dpr; this.cv.style.width = s + 'px'; this.cv.style.height = s + 'px'; this.dpr = dpr;
+    const a = this.api.el.area, dpr = window.devicePixelRatio || 1;
+    this.W = a.clientWidth; this.H = a.clientHeight; this.dpr = dpr;
+    this.cv.width = this.W * dpr; this.cv.height = this.H * dpr;
+    this.base = Math.min(this.W, this.H) / CARO_N;
+    this.clampCam();
+  }
+  pc() { return this.base * this.zoom; }
+  clampCam() {
+    const N = CARO_N, pc = this.pc(), hw = this.W / 2 / pc, hh = this.H / 2 / pc;
+    this.cx = hw >= N / 2 ? N / 2 : Math.max(hw, Math.min(N - hw, this.cx));
+    this.cy = hh >= N / 2 ? N / 2 : Math.max(hh, Math.min(N - hh, this.cy));
+  }
+  zoomBy(f, mx, my) {
+    const rc = this.cv.getBoundingClientRect();
+    const sx = mx == null ? this.W / 2 : mx - rc.left, sy = my == null ? this.H / 2 : my - rc.top;
+    const bx = (sx - this.W / 2) / this.pc() + this.cx, by = (sy - this.H / 2) / this.pc() + this.cy;
+    this.zoom = Math.max(1, Math.min(4, this.zoom * f));
+    const pc = this.pc(); this.cx = bx - (sx - this.W / 2) / pc; this.cy = by - (sy - this.H / 2) / pc;
+    this.clampCam(); this.render();
+  }
+  startPinch() {
+    const [a, b] = Array.from(this.ptrs.values()), rc = this.cv.getBoundingClientRect();
+    const mx = (a.x + b.x) / 2 - rc.left, my = (a.y + b.y) / 2 - rc.top;
+    this.pin = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, z: this.zoom, bx: (mx - this.W / 2) / this.pc() + this.cx, by: (my - this.H / 2) / this.pc() + this.cy };
+  }
+  pinchMove() {
+    if (!this.pin) return;
+    const [a, b] = Array.from(this.ptrs.values()), rc = this.cv.getBoundingClientRect();
+    const mx = (a.x + b.x) / 2 - rc.left, my = (a.y + b.y) / 2 - rc.top, d = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+    this.zoom = Math.max(1, Math.min(4, this.pin.z * d / this.pin.d));
+    const pc = this.pc(); this.cx = this.pin.bx - (mx - this.W / 2) / pc; this.cy = this.pin.by - (my - this.H / 2) / pc;
+    this.clampCam(); this.render();
   }
   snap() { return { b: this.b.slice(), count: this.count, turn: this.turn }; }
-  restore(s) { this.b = s.b.slice(); this.count = s.count; this.turn = s.turn; this.winLine = null; this.wl = null; this.pend = -1; }
+  restore(s) { this.b = s.b.slice(); this.count = s.count; this.turn = s.turn; this.winLine = null; this.wl = null; this.pend = -1; this.focus = null; }
   isLegal(m) { return m >= 0 && m < this.b.length && this.b[m] === 0; }
   doMove(m) {
     const side = this.turn; this.b[m] = side; this.count++; this.turn = -side; this.pend = -1;
-    this.wl = this.lineAt(m, side);
+    this.wl = this.lineAt(m, side); this.focus = m;
     return { last: m };
   }
   // trả về mảng ô thắng nếu có
@@ -1639,22 +1751,35 @@ class CaroGame extends TurnBase {
   }
   aiDrawOK() { return this.count > 120; }
   render() {
-    if (!this.cv) return;
-    const ctx = this.cv.getContext('2d'), s = this.size, N = CARO_N, cell = s / N;
-    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0); ctx.clearRect(0, 0, s, s);
-    ctx.fillStyle = '#e8c58a'; ctx.fillRect(0, 0, s, s);
-    ctx.strokeStyle = '#6b4a1e'; ctx.lineWidth = 1;
-    for (let i = 0; i < N; i++) {
-      const p = cell * (i + 0.5);
-      ctx.beginPath(); ctx.moveTo(cell / 2, p); ctx.lineTo(s - cell / 2, p); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(p, cell / 2); ctx.lineTo(p, s - cell / 2); ctx.stroke();
+    if (!this.cv || !this.W) return;
+    const ctx = this.cv.getContext('2d'), N = CARO_N, W = this.W, H = this.H;
+    if (this.focus != null) {   // tự cuộn để nước vừa đi luôn nằm trong khung nhìn
+      const pc0 = this.pc(), fx = (this.focus % N) + 0.5, fy = ((this.focus / N) | 0) + 0.5, mx = 2.2 * pc0 > W / 2 ? 0.5 : 2.2, my = 2.2 * pc0 > H / 2 ? 0.5 : 2.2;
+      const hw = W / 2 / pc0, hh = H / 2 / pc0;
+      if (fx < this.cx - hw + mx) this.cx = fx + hw - mx; else if (fx > this.cx + hw - mx) this.cx = fx - hw + mx;
+      if (fy < this.cy - hh + my) this.cy = fy + hh - my; else if (fy > this.cy + hh - my) this.cy = fy - hh + my;
+      this.clampCam(); this.focus = null;
     }
-    const ctr = k => ({ x: cell * ((k % N) + 0.5), y: cell * (((k / N) | 0) + 0.5) });
+    const pc = this.pc(), cell = pc;
+    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#0a0f1d'; ctx.fillRect(0, 0, W, H);
+    const X = bx => (bx - this.cx) * pc + W / 2, Y = by => (by - this.cy) * pc + H / 2;
+    ctx.fillStyle = '#e8c58a'; ctx.fillRect(X(0), Y(0), N * pc, N * pc);
+    ctx.strokeStyle = '#6b4a1e'; ctx.lineWidth = Math.max(1, pc / 28);
+    for (let i = 0; i < N; i++) {
+      ctx.beginPath(); ctx.moveTo(X(0.5), Y(i + 0.5)); ctx.lineTo(X(N - 0.5), Y(i + 0.5)); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(X(i + 0.5), Y(0.5)); ctx.lineTo(X(i + 0.5), Y(N - 0.5)); ctx.stroke();
+    }
+    ctx.lineWidth = Math.max(2, pc / 12); ctx.strokeRect(X(0) + 1, Y(0) + 1, N * pc - 2, N * pc - 2);
+    ctx.fillStyle = '#6b4a1e';
+    [3, 7, 11].forEach(r => [3, 7, 11].forEach(c => { ctx.beginPath(); ctx.arc(X(c + 0.5), Y(r + 0.5), Math.max(2, pc * 0.08), 0, 7); ctx.fill(); }));
+    const ctr = k => ({ x: X((k % N) + 0.5), y: Y(((k / N) | 0) + 0.5) });
     if (this.last != null) { const o = ctr(this.last); ctx.fillStyle = 'rgba(250,204,21,.55)'; ctx.fillRect(o.x - cell / 2, o.y - cell / 2, cell, cell); }
     if (this.pend >= 0) { const o = ctr(this.pend); ctx.fillStyle = 'rgba(16,185,129,.45)'; ctx.fillRect(o.x - cell / 2, o.y - cell / 2, cell, cell); }
     const r = cell * 0.32; ctx.lineCap = 'round';
     for (let k = 0; k < N * N; k++) {
       const v = this.b[k]; if (!v) continue; const o = ctr(k);
+      if (o.x < -cell || o.x > W + cell || o.y < -cell || o.y > H + cell) continue;
       if (v === 1) { ctx.strokeStyle = '#b91c1c'; ctx.lineWidth = Math.max(2, cell * 0.14); ctx.beginPath(); ctx.moveTo(o.x - r, o.y - r); ctx.lineTo(o.x + r, o.y + r); ctx.moveTo(o.x + r, o.y - r); ctx.lineTo(o.x - r, o.y + r); ctx.stroke(); }
       else { ctx.strokeStyle = '#1d4ed8'; ctx.lineWidth = Math.max(2, cell * 0.14); ctx.beginPath(); ctx.arc(o.x, o.y, r * 1.05, 0, 7); ctx.stroke(); }
     }
@@ -1672,8 +1797,9 @@ class CaroGame extends TurnBase {
   }
   onTap(e) {
     if (!this.canAct()) return;
-    const rc = this.cv.getBoundingClientRect(), cell = rc.width / CARO_N;
-    const c = Math.floor((e.clientX - rc.left) / cell), r = Math.floor((e.clientY - rc.top) / cell);
+    const rc = this.cv.getBoundingClientRect(), pc = this.pc();
+    const bx = (e.clientX - rc.left - this.W / 2) / pc + this.cx, by = (e.clientY - rc.top - this.H / 2) / pc + this.cy;
+    const c = Math.floor(bx), r = Math.floor(by);
     if (r < 0 || r >= CARO_N || c < 0 || c >= CARO_N) return;
     const k = r * CARO_N + c; if (this.b[k]) return;
     if (this.pend === k) { this.commit(k, 'me'); return; }   // chạm lần 2 để xác nhận
@@ -1681,331 +1807,14 @@ class CaroGame extends TurnBase {
   }
 }
 
-/* ====================== BẮN RUỒI 2 NGƯỜI (thời gian thực) ====================== */
-const FLY_W = 1, FLY_H = 1.4, FLY_T = 30, FLY_R = 0.095;
-const FLY_BOT = [{ rt: 1100, acc: .45, bee: .22 }, { rt: 720, acc: .65, bee: .1 }, { rt: 470, acc: .82, bee: .04 }, { rt: 290, acc: .94, bee: 0 }];
-class FlyGame {
-  constructor(api) { this.api = api; this.raf = 0; this.alive = false; }
-  sideInfo(s) { return { name: s === 1 ? 'Chủ phòng' : 'Khách', cls: s === 1 ? 'sp1' : 'sp2' }; }
-  start(cfg) {
-    this.destroy(); this.cfg = cfg; this.mode = cfg.mode; this.mySide = cfg.mySide || 1;
-    this.host = this.mode === 'ai' || this.mySide === 1;
-    this.alive = true; this.over = false;
-    this.fl = []; this.fx = []; this.nid = 1; this.sc = { 1: 0, '-1': 0 }; this.phase = 0; this.cd = 3.4; this.tl = FLY_T;
-    this.lastT = performance.now(); this.acc = 0; this.snapT = 0; this.evq = []; this.spT = 0; this.beeT = 3; this.lastCd = 99;
-    this.botT = 1.2; this.remoteT = 0;
-    const a = this.api.el; a.title.textContent = cfg.title; a.area.innerHTML = '';
-    this.cv = h('canvas', { class: 'fullcv' }); a.area.append(this.cv);
-    this.cv.addEventListener('pointerdown', e => { e.preventDefault(); this.onTap(e); });
-    const mk = root => { root.innerHTML = ''; const dot = h('i', { class: 'sdot' }), name = h('b', { class: 'sname' }), extra = h('span', { class: 'sextra' }), clock = h('span', { class: 'sclock' }); root.append(dot, name, extra, clock); return { root, dot, name, extra, clock }; };
-    this.S = { bot: mk(a.bot), top: mk(a.top) };
-    a.actions.innerHTML = ''; a.actions.append(h('button', { class: 'abtn', onclick: () => this.api.leave() }, h('span', { class: 'ai' }, '⌂'), h('span', {}, 'Menu')));
-    a.status.textContent = 'Chuẩn bị…';
-    this.fit(); this.ui(); this.loop();
-  }
-  destroy() { this.alive = false; cancelAnimationFrame(this.raf); }
-  resize() { if (this.cv) this.fit(); }
-  fit() {
-    const a = this.api.el.area, w = a.clientWidth, h_ = a.clientHeight, dpr = window.devicePixelRatio || 1;
-    this.cv.width = w * dpr; this.cv.height = h_ * dpr; this.dpr = dpr; this.W = w; this.H = h_;
-    this.sc_ = Math.min(w / FLY_W, h_ / FLY_H); this.ox = (w - FLY_W * this.sc_) / 2; this.oy = (h_ - FLY_H * this.sc_) / 2;
-  }
-  other(s) { return -s; }
-  nameOf(s) { const lab = this.sideInfo(s).name; return this.mode === 'ai' ? (s === this.mySide ? 'Bạn' : LEVEL_NAMES[this.cfg.level] + ' (Máy)') : (s === this.mySide ? 'Bạn' : 'Đối thủ') + ' · ' + lab; }
-  ui() {
-    [1, -1].forEach(s => {
-      const S = s === this.mySide ? this.S.bot : this.S.top;
-      S.name.textContent = this.nameOf(s); S.dot.className = 'sdot ' + this.sideInfo(s).cls;
-      S.extra.textContent = '🪰 ' + this.sc[s]; S.clock.textContent = '';
-    });
-    const t = this.S.bot.clock; t.textContent = this.phase === 1 ? Math.ceil(this.tl) + 's' : ''; this.S.top.clock.textContent = t.textContent;
-    this.api.el.status.textContent = this.phase === 0 ? 'Sẵn sàng…' : this.phase === 1 ? 'Chạm vào ruồi 🪰 · tránh ong 🐝 (−2)' : 'Kết thúc';
-  }
-  /* ---- vòng lặp ---- */
-  loop() {
-    if (!this.alive) return;
-    const now = performance.now(), dt = Math.min(0.1, (now - this.lastT) / 1000); this.lastT = now;
-    if (this.host) this.step(dt); else this.guestStep(dt);
-    this.draw(now);
-    this.raf = requestAnimationFrame(() => this.loop());
-  }
-  rnd(a, b) { return a + Math.random() * (b - a); }
-  spawn(type) {
-    const edge = (Math.random() * 4) | 0; let x, y;
-    if (edge === 0) { x = this.rnd(.05, .95); y = -0.05; } else if (edge === 1) { x = this.rnd(.05, .95); y = FLY_H + .05; } else if (edge === 2) { x = -.05; y = this.rnd(.1, FLY_H - .1); } else { x = 1.05; y = this.rnd(.1, FLY_H - .1); }
-    const tx = this.rnd(.2, .8), ty = this.rnd(.2, FLY_H - .2), ang = Math.atan2(ty - y, tx - x), sp = type === 1 ? this.rnd(.18, .3) : this.rnd(.2, .34);
-    this.fl.push({ id: this.nid++, x, y, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, type, age: 0, life: this.rnd(3.2, 5.5), sp });
-  }
-  step(dt) {
-    if (this.phase === 0) {
-      this.cd -= dt; const c = Math.ceil(this.cd);
-      if (c !== this.lastCd && c >= 1 && c <= 3) { this.lastCd = c; Snd.tick(); }
-      if (this.cd <= 0) { this.phase = 1; Snd.go(); this.ui(); }
-    } else if (this.phase === 1) {
-      this.tl -= dt; if (this.tl <= 0) { this.tl = 0; this.phase = 2; this.ui(); this.finishGame(); }
-      // sinh ruồi/ong
-      this.spT -= dt; const nF = this.fl.filter(f => f.type === 0).length;
-      if (this.spT <= 0 && nF < 6) { this.spawn(0); this.spT = this.rnd(.25, .7); }
-      this.beeT -= dt; if (this.beeT <= 0) { if (this.fl.filter(f => f.type === 1).length < 2) this.spawn(1); this.beeT = this.rnd(3, 5.5); }
-      for (const f of this.fl) {
-        f.age += dt;
-        // lượn ngẫu nhiên
-        const turn = this.rnd(-1, 1) * 2.2 * dt, c = Math.cos(turn), s = Math.sin(turn), vx = f.vx * c - f.vy * s, vy = f.vx * s + f.vy * c; f.vx = vx; f.vy = vy;
-        f.x += f.vx * dt; f.y += f.vy * dt;
-        if (f.age > .8) { if (f.x < .03) f.vx = Math.abs(f.vx); if (f.x > .97) f.vx = -Math.abs(f.vx); if (f.y < .03) f.vy = Math.abs(f.vy); if (f.y > FLY_H - .03) f.vy = -Math.abs(f.vy); }
-      }
-      this.fl = this.fl.filter(f => f.age < f.life);
-      if (this.mode === 'ai') this.botStep(dt);
-    }
-    this.fx.forEach(e => e.t += dt); this.fx = this.fx.filter(e => e.t < .7);
-    this.snapT -= dt;
-    if (this.mode === 'online' && (this.snapT <= 0 || this.evq.length)) { this.snapT = 1 / 15; this.sendSnap(); }
-    this.uiT = (this.uiT || 0) - dt; if (this.uiT <= 0) { this.uiT = .15; this.ui(); }
-  }
-  hit(x, y, side) {
-    let best = null, bd = FLY_R * FLY_R;
-    for (const f of this.fl) { const d = (f.x - x) ** 2 + (f.y - y) ** 2; if (d < bd) { bd = d; best = f; } }
-    if (!best) { return; }
-    this.fl.splice(this.fl.indexOf(best), 1);
-    const pts = best.type === 1 ? -2 : 1; this.sc[side] += pts;
-    const ev = [Math.round(best.x * 1000) / 1000, Math.round(best.y * 1000) / 1000, best.type, side]; this.evq.push(ev); this.addFx(ev);
-  }
-  addFx(ev) {
-    this.fx.push({ x: ev[0], y: ev[1], type: ev[2], side: ev[3], t: 0 });
-    if (ev[3] === this.mySide) { if (ev[2] === 1) Snd.bad(); else Snd.hit(); } else if (ev[2] === 0) Snd.tone(300, .05, 'triangle', .04);
-  }
-  botStep(dt) {
-    const b = FLY_BOT[this.cfg.level]; this.botT -= dt;
-    if (this.botT > 0) return; this.botT = b.rt / 1000 * this.rnd(.7, 1.3);
-    let tg = this.fl.filter(f => f.type === 0 && f.age > .4);
-    if (!tg.length) return;
-    let f = tg[(Math.random() * tg.length) | 0];
-    if (Math.random() < b.bee) { const bees = this.fl.filter(x => x.type === 1); if (bees.length) f = bees[0]; }
-    if (Math.random() > b.acc) { return; }
-    this.hit(f.x + f.vx * .05, f.y + f.vy * .05, -this.mySide);
-  }
-  sendSnap() {
-    const ph = this.phase;
-    this.api.send({ t: 'snap', f: this.fl.map(f => [f.id, +f.x.toFixed(3), +f.y.toFixed(3), +f.vx.toFixed(3), +f.vy.toFixed(3), f.type]), a: this.sc[1], b: this.sc[-1], tl: +this.tl.toFixed(2), ph, cd: +this.cd.toFixed(2), ev: this.evq });
-    this.evq = [];
-  }
-  finishGame() {
-    if (this.over) return; this.over = true;
-    if (this.mode === 'online') { this.sendSnap(); }
-    const me = this.sc[this.mySide], op = this.sc[-this.mySide];
-    this.end(me > op ? 'win' : me < op ? 'lose' : 'draw', me + ' – ' + op);
-  }
-  end(kind, score) {
-    const title = kind === 'win' ? 'Bạn thắng! 🎉' : kind === 'lose' ? 'Bạn thua 😢' : 'Hòa 🤝';
-    if (kind === 'win') Snd.win(); else if (kind === 'lose') Snd.lose();
-    this.ui(); setTimeout(() => this.api.result({ kind, title, text: 'Tỉ số ' + score }), 700);
-  }
-  /* ---- khách ---- */
-  guestStep(dt) {
-    this.fx.forEach(e => e.t += dt); this.fx = this.fx.filter(e => e.t < .7);
-    this.uiT = (this.uiT || 0) - dt; if (this.uiT <= 0) { this.uiT = .15; this.ui(); }
-  }
-  onNet(m) {
-    if (!m) return;
-    if (m.t === 'leave') { if (!this.over) { this.over = true; this.phase = 2; this.end('win', 'đối thủ đã thoát'); } return; }
-    if (m.t === 'tap' && this.host && this.phase === 1) { this.hit(m.x, m.y, -this.mySide); return; }
-    if (m.t === 'snap' && !this.host) {
-      this.snapAt = performance.now(); this.fl = m.f.map(a => ({ id: a[0], x: a[1], y: a[2], vx: a[3], vy: a[4], type: a[5], sx: a[1], sy: a[2] }));
-      this.sc[1] = m.a; this.sc[-1] = m.b; this.tl = m.tl; this.cd = m.cd;
-      if (m.ph !== this.phase) { this.phase = m.ph; if (this.phase === 1) Snd.go(); this.ui(); }
-      if (this.phase === 0) { const c = Math.ceil(this.cd); if (c !== this.lastCd && c >= 1 && c <= 3) { this.lastCd = c; Snd.tick(); } }
-      (m.ev || []).forEach(ev => this.addFx(ev));
-      if (this.phase === 2 && !this.over) { this.over = true; const me = this.sc[this.mySide], op = this.sc[-this.mySide]; this.end(me > op ? 'win' : me < op ? 'lose' : 'draw', me + ' – ' + op); }
-    }
-  }
-  onTap(e) {
-    if (this.phase !== 1 || this.over) return;
-    const rc = this.cv.getBoundingClientRect(), x = (e.clientX - rc.left - this.ox) / this.sc_, y = (e.clientY - rc.top - this.oy) / this.sc_;
-    this.fx.push({ x, y, type: 2, side: this.mySide, t: 0 });
-    if (this.host) this.hit(x, y, this.mySide); else this.api.send({ t: 'tap', x: +x.toFixed(3), y: +y.toFixed(3) });
-  }
-  /* ---- vẽ ---- */
-  draw(now) {
-    const ctx = this.cv.getContext('2d'), W = this.W, H = this.H, sc = this.sc_;
-    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    ctx.fillStyle = '#14532d'; ctx.fillRect(0, 0, W, H);
-    ctx.save(); ctx.translate(this.ox, this.oy);
-    const g = ctx.createLinearGradient(0, 0, 0, FLY_H * sc); g.addColorStop(0, '#166534'); g.addColorStop(1, '#14532d');
-    ctx.fillStyle = g; ctx.fillRect(0, 0, FLY_W * sc, FLY_H * sc);
-    ctx.strokeStyle = 'rgba(255,255,255,.18)'; ctx.lineWidth = 2; ctx.strokeRect(1, 1, FLY_W * sc - 2, FLY_H * sc - 2);
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    const sz = FLY_R * 1.7 * sc; ctx.font = sz + 'px "Apple Color Emoji","Segoe UI Emoji",sans-serif';
-    const dtS = this.host ? 0 : Math.min(.15, (now - (this.snapAt || now)) / 1000);
-    for (const f of this.fl) {
-      const x = (f.x + f.vx * dtS) * sc, y = (f.y + f.vy * dtS) * sc;
-      ctx.save(); ctx.translate(x, y); ctx.rotate(Math.atan2(f.vy, f.vx) + Math.PI / 2); ctx.fillText(f.type === 1 ? '🐝' : '🪰', 0, 0); ctx.restore();
-    }
-    for (const e of this.fx) {
-      const k = e.t / .7, x = e.x * sc, y = e.y * sc;
-      if (e.type === 2) { ctx.strokeStyle = 'rgba(255,255,255,' + (0.5 * (1 - k)) + ')'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, FLY_R * sc * (0.4 + k), 0, 7); ctx.stroke(); continue; }
-      ctx.globalAlpha = 1 - k; ctx.font = 'bold ' + (sz * .8) + 'px sans-serif';
-      ctx.fillStyle = e.type === 1 ? '#fca5a5' : (e.side === this.mySide ? '#fde68a' : '#bae6fd');
-      ctx.fillText(e.type === 1 ? '−2' : '+1', x, y - k * sc * .12); ctx.globalAlpha = 1;
-    }
-    if (this.phase === 0) {
-      const c = Math.max(1, Math.ceil(this.cd - 0.4)); ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.fillRect(0, 0, FLY_W * sc, FLY_H * sc);
-      ctx.fillStyle = '#fff'; ctx.font = 'bold ' + (sc * .5) + 'px sans-serif'; ctx.fillText(this.cd > 3 ? '' : String(c), FLY_W * sc / 2, FLY_H * sc / 2);
-      ctx.font = 'bold ' + (sc * .07) + 'px sans-serif'; ctx.fillText('Chạm để bắt ruồi!', FLY_W * sc / 2, FLY_H * sc * .3);
-    }
-    ctx.restore();
-  }
-}
-
-/* ====================== ĐỠ BÓNG 2 NGƯỜI (mỗi máy 1 người) ====================== */
-const BALL_T = 45, BALL_FALL = 2.3, BALL_BW = 0.2;
-const BALL_BOT = [{ v: .55, err: .14, avoid: false }, { v: .9, err: .08, avoid: true }, { v: 1.4, err: .035, avoid: true }, { v: 2.4, err: .01, avoid: true }];
-class BallGame {
-  constructor(api) { this.api = api; this.raf = 0; this.alive = false; }
-  sideInfo(s) { return { name: s === 1 ? 'Chủ phòng' : 'Khách', cls: s === 1 ? 'sp1' : 'sp2' }; }
-  start(cfg) {
-    this.destroy(); this.cfg = cfg; this.mode = cfg.mode; this.mySide = cfg.mySide || 1;
-    this.alive = true; this.over = false; this.phase = 0; this.cd = 3.4; this.T = 0; this.lastCd = 99;
-    const rng = mulberry32(cfg.seed || 12345); this.items = []; let t = 0.7;
-    while (t < BALL_T) {
-      const r = rng(), type = r < .7 ? 0 : r < .84 ? 1 : 2;      // 0 bóng +1, 1 sao +3, 2 bom -3
-      this.items.push({ t, x: .1 + .8 * rng(), type, sp: .85 + .5 * rng() + (t / BALL_T) * .45 });
-      t += Math.max(.3, .78 - (t / BALL_T) * .38) * (.7 + .6 * rng());
-    }
-    this.ls = [0, 1].map(() => ({ bx: .5, st: new Uint8Array(this.items.length), score: 0 }));
-    this.fx = []; this.finOpp = null; this.finMine = false; this.lastSend = 0; this.sentBx = -1; this.oppTarget = .5; this.finAt = 0;
-    this.bot = { tx: .5, nt: 0 };
-    const a = this.api.el; a.title.textContent = cfg.title; a.area.innerHTML = '';
-    this.cv = h('canvas', { class: 'fullcv' }); a.area.append(this.cv);
-    const mv = e => { if (this.over) return; const rc = this.cv.getBoundingClientRect(); this.ls[0].bx = Math.max(.12, Math.min(.88, (e.clientX - rc.left) / rc.width)); };
-    this.cv.addEventListener('pointerdown', e => { e.preventDefault(); try { this.cv.setPointerCapture(e.pointerId); } catch (x) {} mv(e); });
-    this.cv.addEventListener('pointermove', e => { e.preventDefault(); mv(e); });
-    const mk = root => { root.innerHTML = ''; const dot = h('i', { class: 'sdot' }), name = h('b', { class: 'sname' }), extra = h('span', { class: 'sextra' }), clock = h('span', { class: 'sclock' }); root.append(dot, name, extra, clock); return { root, dot, name, extra, clock }; };
-    this.S = { bot: mk(a.bot), top: mk(a.top) };
-    a.actions.innerHTML = ''; a.actions.append(h('button', { class: 'abtn', onclick: () => this.api.leave() }, h('span', { class: 'ai' }, '⌂'), h('span', {}, 'Menu')));
-    this.fit(); this.ui(); this.lastT = performance.now(); this.loop();
-  }
-  destroy() { this.alive = false; cancelAnimationFrame(this.raf); }
-  resize() { if (this.cv) this.fit(); }
-  fit() { const a = this.api.el.area, dpr = window.devicePixelRatio || 1; this.W = a.clientWidth; this.H = a.clientHeight; this.dpr = dpr; this.cv.width = this.W * dpr; this.cv.height = this.H * dpr; }
-  nameOf(s) { return this.mode === 'ai' ? (s === this.mySide ? 'Bạn' : LEVEL_NAMES[this.cfg.level] + ' (Máy)') : (s === this.mySide ? 'Bạn' : 'Đối thủ') + ' · ' + this.sideInfo(s).name; }
-  ui() {
-    const me = this.S.bot, op = this.S.top;
-    me.name.textContent = this.nameOf(this.mySide); op.name.textContent = this.nameOf(-this.mySide);
-    me.dot.className = 'sdot ' + this.sideInfo(this.mySide).cls; op.dot.className = 'sdot ' + this.sideInfo(-this.mySide).cls;
-    me.extra.textContent = '🏀 ' + this.ls[0].score; op.extra.textContent = '🏀 ' + (this.mode === 'online' && this.finOpp != null ? this.finOpp : this.ls[1].score);
-    const tl = this.phase === 1 ? Math.max(0, Math.ceil(BALL_T - this.T)) + 's' : '';
-    me.clock.textContent = tl; op.clock.textContent = tl;
-    this.api.el.status.textContent = this.phase === 0 ? 'Sẵn sàng…' : this.phase === 1 ? 'Kéo ngón tay để di chuyển rổ · ⭐ +3 · 💣 −3' : 'Kết thúc';
-  }
-  loop() {
-    if (!this.alive) return;
-    const now = performance.now(), dt = Math.min(.1, (now - this.lastT) / 1000); this.lastT = now;
-    this.step(dt); this.draw(); this.raf = requestAnimationFrame(() => this.loop());
-  }
-  y(it) { return (this.T - it.t) * it.sp / BALL_FALL * 1.0 - 0.05; }
-  step(dt) {
-    if (this.phase === 0) {
-      this.cd -= dt; const c = Math.ceil(this.cd); if (c !== this.lastCd && c >= 1 && c <= 3) { this.lastCd = c; Snd.tick(); }
-      if (this.cd <= 0) { this.phase = 1; Snd.go(); this.ui(); }
-    } else if (this.phase === 1) {
-      this.T += dt;
-      this.lane(0, true); this.lane(1, false);
-      if (this.mode === 'ai') this.botStep(dt); else this.ls[1].bx += (this.oppTarget - this.ls[1].bx) * Math.min(1, dt * 14);
-      if (this.mode === 'online') { const tn = performance.now(); if (tn - this.lastSend > 70 && Math.abs(this.ls[0].bx - this.sentBx) > .004) { this.lastSend = tn; this.sentBx = this.ls[0].bx; this.api.send({ t: 'bx', x: +this.ls[0].bx.toFixed(3) }); } }
-      if (this.T >= BALL_T) { this.phase = 2; this.finish(); }
-    } else if (this.phase === 2 && !this.over && this.finAt && performance.now() > this.finAt) this.conclude();
-    this.fx.forEach(e => e.t += dt); this.fx = this.fx.filter(e => e.t < .7);
-    this.uiT = (this.uiT || 0) - dt; if (this.uiT <= 0) { this.uiT = .2; this.ui(); }
-  }
-  lane(i, mine) {
-    const L = this.ls[i];
-    for (let k = 0; k < this.items.length; k++) {
-      if (L.st[k]) continue; const it = this.items[k]; if (it.t > this.T) break;
-      const y = this.y(it);
-      if (y >= .84 && y <= .95 && Math.abs(it.x - L.bx) <= BALL_BW / 2 + .05) {
-        L.st[k] = 1; const pts = it.type === 0 ? 1 : it.type === 1 ? 3 : -3;
-        this.fx.push({ lane: i, x: it.x, y, pts, t: 0 });
-        if (mine) {
-          L.score += pts; if (pts > 0) { Snd.hit(); if (pts === 3) Snd.tone(1200, .1, 'sine', .1, .05); } else { Snd.bad(); try { navigator.vibrate && navigator.vibrate(60); } catch (e) {} }
-          if (this.mode === 'online') this.api.send({ t: 'sc', s: L.score });
-        } else if (this.mode === 'ai') L.score += pts;
-      } else if (y > 1.08) L.st[k] = 2;
-    }
-  }
-  botStep(dt) {
-    const B = BALL_BOT[this.cfg.level], L = this.ls[1]; this.bot.nt -= dt;
-    if (this.bot.nt <= 0) {
-      this.bot.nt = .12; let best = null, by = -9;
-      for (let k = 0; k < this.items.length; k++) {
-        if (L.st[k]) continue; const it = this.items[k]; if (it.t > this.T) break;
-        if (B.avoid && it.type === 2) continue;
-        const y = this.y(it); if (y > .9) continue;
-        const reach = Math.abs(it.x - L.bx) / B.v, tleft = (.9 - y) * BALL_FALL / it.sp;
-        if (reach > tleft + .05) continue;
-        const sc = y + (it.type === 1 ? .25 : 0); if (sc > by) { by = sc; best = it; }
-      }
-      this.bot.tx = best ? best.x + (Math.random() * 2 - 1) * B.err : L.bx;
-      if (!B.avoid) { for (let k = 0; k < this.items.length; k++) { const it = this.items[k]; if (L.st[k] || it.t > this.T) continue; if (it.type === 2 && Math.abs(it.x - L.bx) < .15 && this.y(it) > .6 && Math.random() < .3) { this.bot.tx = it.x; } } }
-    }
-    const d = this.bot.tx - L.bx, mx = B.v * dt; L.bx += Math.abs(d) < mx ? d : Math.sign(d) * mx; L.bx = Math.max(.12, Math.min(.88, L.bx));
-  }
-  finish() {
-    this.ui();
-    if (this.mode === 'ai') { this.conclude(); return; }
-    this.finMine = true; this.api.send({ t: 'fin', s: this.ls[0].score });
-    if (this.finOpp != null) this.conclude(); else this.finAt = performance.now() + 4000;
-  }
-  conclude() {
-    if (this.over) return; this.over = true;
-    const me = this.ls[0].score, op = this.mode === 'ai' ? this.ls[1].score : (this.finOpp != null ? this.finOpp : this.ls[1].score);
-    this.ls[1].score = op; const kind = me > op ? 'win' : me < op ? 'lose' : 'draw';
-    if (kind === 'win') Snd.win(); else if (kind === 'lose') Snd.lose(); this.ui();
-    setTimeout(() => this.api.result({ kind, title: kind === 'win' ? 'Bạn thắng! 🎉' : kind === 'lose' ? 'Bạn thua 😢' : 'Hòa 🤝', text: 'Điểm ' + me + ' – ' + op }), 600);
-  }
-  onNet(m) {
-    if (!m) return;
-    if (m.t === 'bx') this.oppTarget = Math.max(.12, Math.min(.88, m.x));
-    else if (m.t === 'sc') { this.finOppLive = m.s; this.ls[1].score = m.s; }
-    else if (m.t === 'fin') { this.finOpp = m.s; if (this.finMine) this.conclude(); }
-    else if (m.t === 'leave' && !this.over) { this.over = true; this.phase = 2; Snd.win(); this.api.result({ kind: 'win', title: 'Bạn thắng! 🎉', text: 'Đối thủ đã thoát' }); }
-  }
-  draw() {
-    const ctx = this.cv.getContext('2d'), W = this.W, H = this.H, lw = W / 2;
-    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    // phía trái = làn của mình (nhưng ngón tay kéo trên toàn màn hình)
-    for (let i = 0; i < 2; i++) {
-      const x0 = i * lw, g = ctx.createLinearGradient(0, 0, 0, H);
-      if (i === 0) { g.addColorStop(0, '#7c2d12'); g.addColorStop(1, '#431407'); } else { g.addColorStop(0, '#1e3a8a'); g.addColorStop(1, '#172554'); }
-      ctx.fillStyle = g; ctx.fillRect(x0, 0, lw, H);
-      const L = this.ls[i], sz = Math.max(18, lw * .17); ctx.font = sz + 'px "Apple Color Emoji","Segoe UI Emoji",sans-serif';
-      for (let k = 0; k < this.items.length; k++) {
-        if (L.st[k]) continue; const it = this.items[k]; if (it.t > this.T) break;
-        const y = this.y(it); ctx.fillText(it.type === 0 ? '🏀' : it.type === 1 ? '⭐' : '💣', x0 + it.x * lw, y * H * .93);
-      }
-      ctx.font = (lw * .3) + 'px "Apple Color Emoji","Segoe UI Emoji",sans-serif';
-      const by = H * .965; ctx.fillText('🧺', x0 + L.bx * lw, by);
-      ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.font = 'bold ' + Math.max(12, lw * .08) + 'px sans-serif'; ctx.fillText(i === 0 ? 'BẠN' : 'ĐỐI THỦ', x0 + lw / 2, 14);
-    }
-    ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fillRect(lw - 1, 0, 2, H);
-    ctx.font = 'bold ' + Math.max(16, lw * .13) + 'px sans-serif';
-    for (const e of this.fx) { const k = e.t / .7; ctx.globalAlpha = 1 - k; ctx.fillStyle = e.pts > 0 ? '#fde68a' : '#fca5a5'; ctx.fillText((e.pts > 0 ? '+' : '') + e.pts, e.lane * lw + e.x * lw, e.y * H * .93 - k * H * .08); ctx.globalAlpha = 1; }
-    if (this.phase === 0) {
-      ctx.fillStyle = 'rgba(0,0,0,.5)'; ctx.fillRect(0, 0, W, H); ctx.fillStyle = '#fff';
-      ctx.font = 'bold ' + (W * .45) + 'px sans-serif'; ctx.fillText(this.cd > 3 ? '' : String(Math.max(1, Math.ceil(this.cd - .4))), W / 2, H / 2);
-      ctx.font = 'bold ' + (W * .06) + 'px sans-serif'; ctx.fillText('Kéo ngón tay trái/phải để đỡ bóng', W / 2, H * .3);
-    }
-  }
-}
-
 /* ====================== ĐIỀU KHIỂN CHUNG ====================== */
 const CREDITS = '';
+const FULL_URL = '';   // nếu đã đặt game ở một địa chỉ https riêng, điền vào đây để nút ⤢ mở đúng địa chỉ đó
 const GAMES = [
   { id: 'chess', name: 'Cờ vua', ic: '♞', desc: 'Nhập thành, bắt tốt qua đường, phong cấp', c: ['#64748b', '#1e293b'], turn: true, clock: [0, 3, 5, 10], make: a => new ChessGame(a) },
   { id: 'xq', name: 'Cờ tướng', ic: '帥', icT: true, desc: 'Cờ tướng truyền thống', c: ['#b45309', '#7c2d12'], turn: true, clock: [0, 3, 5, 10], sides: ['Đỏ (đi trước)', 'Đen', 'Ngẫu nhiên'], make: a => new XiangqiGame(a, false) },
   { id: 'jq', name: 'Cờ úp', ic: '暗', icT: true, desc: 'Quân úp, lật khi đi lần đầu', c: ['#7c3aed', '#4c1d95'], turn: true, clock: [0, 3, 5, 10], sides: ['Đỏ (đi trước)', 'Đen', 'Ngẫu nhiên'], make: a => new XiangqiGame(a, true) },
-  { id: 'caro', name: 'Cờ caro', ic: '✕○', desc: '5 quân liên tiếp trên bàn 15×15', c: ['#0891b2', '#164e63'], turn: true, clock: [0, 3, 5], sides: ['X (đi trước)', 'O', 'Ngẫu nhiên'], caro: true, make: a => new CaroGame(a) },
-  { id: 'fly', name: 'Bắn ruồi', ic: '🪰', desc: 'Chạm ruồi nhanh hơn đối thủ, tránh ong!', c: ['#16a34a', '#14532d'], rt: true, make: a => new FlyGame(a) },
-  { id: 'ball', name: 'Đỡ bóng', ic: '🧺', desc: 'Kéo rổ đỡ bóng, ⭐ +3, 💣 −3', c: ['#f97316', '#9a3412'], rt: true, make: a => new BallGame(a) }
+  { id: 'caro', name: 'Cờ caro', ic: '✕○', desc: '5 quân liên tiếp trên bàn 15×15', c: ['#0891b2', '#164e63'], turn: true, clock: [0, 3, 5], sides: ['X (đi trước)', 'O', 'Ngẫu nhiên'], caro: true, make: a => new CaroGame(a) }
 ];
 const gameById = id => GAMES.find(g => g.id === id);
 
@@ -2055,8 +1864,6 @@ function renderLobby() {
   if (g.sides && (M.tab === 'ai' || M.role !== 'guest')) opts.append(chips(M.tab === 'ai' ? 'Bạn cầm quân' : 'Bạn (chủ phòng) cầm quân', g.sides.map((n, i) => [[1, -1, 0][i], n]), o.side, v => { o.side = v; saveOpt(); }));
   if (g.turn && (M.tab === 'ai' || M.role !== 'guest')) opts.append(chips('Đồng hồ mỗi bên', g.clock.map(m => [m, m ? m + ' phút' : 'Không']), o.clock, v => { o.clock = v; saveOpt(); }));
   if (g.caro && (M.tab === 'ai' || M.role !== 'guest')) opts.append(chips('Luật', [[false, '5 quân thắng'], [true, 'Chặn 2 đầu không tính']], o.blocked, v => { o.blocked = v; saveOpt(); }));
-  if (g.rt && M.tab === 'online') opts.append(h('div', { class: 'note' }, g.id === 'fly' ? '30 giây · chủ phòng chạy trò chơi, khách chạm gửi qua mạng. Ruồi +1, ong −2.' : '45 giây · mỗi người một làn, bóng rơi giống hệt nhau. Bóng +1, sao +3, bom −3.'));
-  if (g.rt && M.tab === 'ai') opts.append(h('div', { class: 'note' }, g.id === 'fly' ? '30 giây · chạm ruồi nhanh hơn máy, tránh ong.' : '45 giây · kéo ngón tay để di chuyển rổ.'));
   if (opts.children.length) body.append(opts);
   if (M.tab === 'ai') {
     body.append(h('button', { class: 'btn pri', style: 'min-height:54px;font-size:16px', onclick: () => startAI() }, '▶ Bắt đầu'));
@@ -2199,6 +2006,12 @@ function onNetClose() {
 /* ---------- khởi động ---------- */
 function init() {
   buildHome();
+  let emb = false; try { emb = window.top !== window.self; } catch (e) { emb = true; }
+  if (emb) {
+    document.documentElement.classList.add('emb');
+    $('#fs').onclick = () => { const w = window.open(FULL_URL || location.href, '_blank'); if (!w) toast('Trình duyệt chặn tab mới — cho phép cửa sổ bật lên rồi bấm lại'); };
+    if (innerHeight < 560) $('#hfoot').textContent = 'Khung nhúng đang thấp · bấm ⤢ để mở toàn màn hình';
+  }
   const bindSnd = () => $$('.sndbtn').forEach(b => b.textContent = Snd.on ? '🔊' : '🔇');
   $$('.sndbtn').forEach(b => b.addEventListener('click', () => { Snd.on = !Snd.on; LS.set('mgv2.snd', Snd.on); bindSnd(); if (Snd.on) Snd.move(); }));
   bindSnd();
