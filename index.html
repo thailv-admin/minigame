@@ -1660,14 +1660,14 @@ class CaroGame extends TurnBase {
     cv.addEventListener('pointerdown', e => {
       e.preventDefault(); try { cv.setPointerCapture(e.pointerId); } catch (x) {}
       this.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY });
-      this.gest = { moved: this.ptrs.size > 1, multi: this.ptrs.size > 1 };
+      this.gest = { moved: this.ptrs.size > 1, multi: this.ptrs.size > 1, touch: e.pointerType !== 'mouse', cell: this.cellAt(e.clientX, e.clientY) };
       if (this.ptrs.size === 2) this.startPinch();
     });
     cv.addEventListener('pointermove', e => {
       const q = this.ptrs.get(e.pointerId); if (!q) return; e.preventDefault();
       const px = q.x, py = q.y; q.x = e.clientX; q.y = e.clientY;
       if (this.ptrs.size >= 2) { this.gest.moved = true; this.pinchMove(); return; }
-      if (!this.gest.moved && Math.hypot(q.x - q.sx, q.y - q.sy) < 8) return;
+      if (!this.gest.moved && Math.hypot(q.x - q.sx, q.y - q.sy) < (this.gest.touch ? 12 : 6)) return;
       this.gest.moved = true;
       const pc = this.pc(); this.cx -= (q.x - px) / pc; this.cy -= (q.y - py) / pc; this.clampCam(); this.render();
     });
@@ -1675,7 +1675,7 @@ class CaroGame extends TurnBase {
       const q = this.ptrs.get(e.pointerId); if (!q) return;
       this.ptrs.delete(e.pointerId);
       const g = this.gest;
-      if (g && !g.moved && !g.multi && e.type === 'pointerup') this.onTap(e);
+      if (g && !g.moved && !g.multi && e.type === 'pointerup') this.onTap(g.cell);
       if (this.ptrs.size === 1) { const r = Array.from(this.ptrs.values())[0]; r.sx = r.x; r.sy = r.y; if (g) g.moved = true; }
       if (this.ptrs.size === 0) this.gest = null;
     };
@@ -1795,13 +1795,18 @@ class CaroGame extends TurnBase {
       ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(z.x, z.y); ctx.stroke(); ctx.globalAlpha = 1;
     }
   }
-  onTap(e) {
-    if (!this.canAct()) return;
+  // đổi toạ độ màn hình -> ô cờ (tính ngay lúc ngón chạm xuống, trước khi khung nhìn kịp xê dịch)
+  cellAt(x, y) {
     const rc = this.cv.getBoundingClientRect(), pc = this.pc();
-    const bx = (e.clientX - rc.left - this.W / 2) / pc + this.cx, by = (e.clientY - rc.top - this.H / 2) / pc + this.cy;
+    const kx = rc.width ? this.W / rc.width : 1, ky = rc.height ? this.H / rc.height : 1;
+    const bx = ((x - rc.left) * kx - this.W / 2) / pc + this.cx, by = ((y - rc.top) * ky - this.H / 2) / pc + this.cy;
     const c = Math.floor(bx), r = Math.floor(by);
-    if (r < 0 || r >= CARO_N || c < 0 || c >= CARO_N) return;
-    const k = r * CARO_N + c; if (this.b[k]) return;
+    if (r < 0 || r >= CARO_N || c < 0 || c >= CARO_N) return -1;
+    return r * CARO_N + c;
+  }
+  onTap(k) {
+    if (k == null || k < 0 || !this.canAct()) return;
+    if (this.b[k]) return;
     if (this.pend === k) { this.commit(k, 'me'); return; }   // chạm lần 2 để xác nhận
     this.pend = k; this.render();
   }
